@@ -12,11 +12,7 @@ df = get_obj.func_start()
 
 model = GbmModel(df=df)
 
-X_train, X_test, y_train, y_test = model.splitting()
-
 for lr in config['parameters']['learning_rate']:
     for n_e in config['parameters']['n_estimators']:
-        model.model(X_train=X_train, 
-                    y_train= y_train, 
-                    n_estimators= n_e,
+        model.model(n_estimators= n_e,
                     lr= lr)

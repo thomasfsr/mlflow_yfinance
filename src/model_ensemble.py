@@ -2,9 +2,11 @@ from sklearn.ensemble import GradientBoostingRegressor as gbm
 from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputRegressor
 import pandas as pd
+import numpy as np
 import mlflow
 import mlflow.sklearn
 from sklearn.model_selection import cross_val_score, KFold
+from sklearn.metrics import mean_squared_error as mse
 
 class GbmModel:
     def __init__(self, df:pd.DataFrame = None,
@@ -37,7 +39,10 @@ class GbmModel:
                                                             random_state=rs)
         return X_train, X_test, y_train, y_test
 
-    def model(self, X_train, y_train, lr: float, n_estimators: int):
+    def model(self, lr: float, n_estimators: int):
+        
+        X_train, X_test, y_train, y_test = self.splitting()
+
         n_splits = self.splits
         rs = self.rs
 
@@ -54,13 +59,17 @@ class GbmModel:
                 mean_scores = scores.mean()
                 score_std = scores.std()
 
+                multi_output_gb.fit(X_train, y_train)
+                pred_test = multi_output_gb.predict(X_test)
+                rmse = np.sqrt(mse(y_test, pred_test))
+
                 mlflow.log_param('n_estimators', n_estimators)
                 mlflow.log_param('learning_rate', lr)
                 mlflow.set_tag("Training Info", "GBM model for time-series")
                 mlflow.log_metric('mean_squared_error', mean_scores)
                 mlflow.log_metric('std_dev', score_std)
-                
-                multi_output_gb.fit(X_train, y_train)
+                mlflow.log_metric('RMSE_test_set', rmse)
+
                 signature = mlflow.models.infer_signature(X_train, multi_output_gb.predict(X_train))
 
                 model_info = mlflow.sklearn.log_model(
@@ -72,6 +81,7 @@ class GbmModel:
                 )
                 print(f"Mean MSE for n_estimators={n_estimators} and learning_rate={lr}: {mean_scores}")
                 print(f"Model Info: {model_info}")
+                print(f"RMSE of test-set: {rmse}")
 
         except Exception as e:
             print(e)
