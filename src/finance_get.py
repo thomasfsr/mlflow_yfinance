@@ -60,9 +60,6 @@ class GetData:
 
         df_lag = pd.DataFrame(val_with_sum_dict)
 
-        print(val_df.head(2))
-        print(vol_df.head(2))
-        print(df_lag.head(2))
         return df_lag, val_df, vol_df
            
     def func_start(self):

@@ -38,8 +38,6 @@ class GbmModel:
             X = df.iloc[:, :n_X].copy()
             X['vol'] = vol
             y = df.iloc[:, n_X:].copy()
-            #print(X.iloc[:2])
-            #print(y.iloc[:2])
 
         elif self.val is not None and self.vol is not None:
             n_X = self.n_X
@@ -53,9 +51,6 @@ class GbmModel:
             X = pd.concat([X_val, X_vol], axis=1)
 
             y = val.iloc[:, n_X:].copy()
-            
-            #print(X.iloc[:2])
-            #print(y.iloc[:2])
         else:
             ValueError()
         X_train, X_test, y_train, y_test = train_test_split(X, y,  
