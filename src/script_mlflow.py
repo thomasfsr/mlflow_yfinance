@@ -16,3 +16,12 @@ for lr in config['parameters']['learning_rate']:
     for n_e in config['parameters']['n_estimators']:
         model.model(n_estimators= n_e,
                     lr= lr)
+        
+df = get_obj.func_start()
+
+model_2 = GbmModel(df=df)
+
+for lr in config['parameters']['learning_rate']:
+    for n_e in config['parameters']['n_estimators']:
+        model_2.model(n_estimators= n_e,
+                    lr= lr)
