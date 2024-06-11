@@ -13,30 +13,54 @@ class GbmModel:
                  n_X:str = 15, 
                  splits:str = 5, 
                  rs:int = 42, 
-                 ts:str= .2):
+                 ts:str= .2,
+                 val:pd.DataFrame = None,
+                 vol:pd.DataFrame = None
+                 ):
         
         self.df = df
         self.splits = splits
         self.n_X = n_X
         self.rs = rs
         self.ts = ts
+        self.val = val
+        self.vol = vol
 
     def splitting(self):
-        df = self.df.copy() 
-        n_X = self.n_X
-        ts = self.ts
-        rs = self.rs
+        if self.df is not None:        
+            df = self.df.copy()
+            n_X = self.n_X
+            ts = self.ts
+            rs = self.rs
 
-        vol = df['vol'].copy()
-        df.drop('vol', axis=1,inplace=True)
-        X = df.iloc[:,:n_X].copy()
-        X['vol'] = vol
-        y = df.iloc[:, n_X:].copy()
+            vol = df['vol'].copy()
+            df.drop('vol', axis=1, inplace=True)
+            X = df.iloc[:, :n_X].copy()
+            X['vol'] = vol
+            y = df.iloc[:, n_X:].copy()
 
+        elif self.val is not None and self.vol is not None:
+            n_X = self.n_X
+            ts = self.ts
+            rs = self.rs
+            val = self.val.copy()
+            vol = self.vol.copy()
+
+            X_val = val.iloc[:, :n_X].copy()
+            X_vol = vol.iloc[:, :n_X].copy()
+            X = pd.concat([X_val, X_vol], axis=1)
+
+            y_val = val.iloc[:, n_X:].copy()
+            #y_vol = vol.iloc[:, n_X:].copy()
+            #y = pd.concat([y_val, y_vol], axis=1)
+            y = y_val
+        else:
+            ValueError()
         X_train, X_test, y_train, y_test = train_test_split(X, y,  
-                                                            test_size=ts, 
-                                                            shuffle=True, 
-                                                            random_state=rs)
+                                                    test_size=ts, 
+                                                    shuffle=True, 
+                                                    random_state=rs)
+
         return X_train, X_test, y_train, y_test
 
     def model(self, lr: float, n_estimators: int):

@@ -8,9 +8,9 @@ with open('src/config.yml', 'r') as f:
 
 mlflow.set_experiment("Yfinance Time Series - NVDA")
 get_obj = GetData(ticker_symbol='NVDA')
-df = get_obj.func_start()
+val_df, vol_df = get_obj.func_start_vol()
 
-model = GbmModel(df=df)
+model = GbmModel(val=val_df, vol= vol_df)
 
 for lr in config['parameters']['learning_rate']:
     for n_e in config['parameters']['n_estimators']:

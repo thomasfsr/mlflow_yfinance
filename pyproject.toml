@@ -19,3 +19,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.taskipy.tasks]
 run = "python src/script_mlflow.py"
+mlui = "python mlflow ui"

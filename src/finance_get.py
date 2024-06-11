@@ -6,7 +6,10 @@ from typing import Literal
 import numpy as np
 
 class GetData:
-    def __init__(self, ticker_symbol:str='BTC-USD', start:str='2015-12-20',end:str= datetime.now().strftime('%Y-%m-%d')):
+    def __init__(self, ticker_symbol:str='BTC-USD', 
+                 start:str='2015-12-20',
+                 end:str= datetime.now().strftime('%Y-%m-%d')):
+        
         self.ticker_symbol = ticker_symbol
         self.start = start
         self.end = end
@@ -37,22 +40,33 @@ class GetData:
     def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close'):
         values = []
         volume = []
+        sum_volume = []
         for i in range(0,len(df)-lags,lags):
-            v = sum(df['Volume'].values[i:i+lags])
+            v = df['Volume'].values[i:i+lags]
             d = df[column].values[i:i+lags]
             volume.append(v)
             values.append(d)
-        varray = np.array(values)
-        varrayT = varray.T
-        vdict = {f"t{i}": varrayT[i] for i in range(0, lags)}
-        vdict['vol']= volume
-        df_lag = pd.DataFrame(vdict)
-        return df_lag
-    
-    def sum_vol(self,df:pd.DataFrame):
-        return sum(df['Volume'][:30])
-        
+            sum_volume.append(sum(v))
+        val_array = np.array(values)
+        vol_array = np.array(volume)
+        val_arrayT = val_array.T
+        vol_arrayT = vol_array.T
+        val_dict = {f"t{i}": val_arrayT[i] for i in range(0, lags)}
+        vol_dict = {f"t_vol{i}": vol_arrayT[i] for i in range(0, lags)}
+        val_with_sum_dict = val_dict
+        val_with_sum_dict['vol'] = sum_volume
+        val_df = pd.DataFrame(val_dict)
+        vol_df = pd.DataFrame(vol_dict)
+        df_lag = pd.DataFrame(val_with_sum_dict)
+
+        return df_lag, val_df, vol_df
+           
     def func_start(self):
         df = self.get_data_df()
-        df_lag = self.lag_data(df,30,'Close')
+        df_lag, _,_ = self.lag_data(df,30,'Close')
         return df_lag
+    
+    def func_start_vol(self):
+        df = self.get_data_df()
+        _,val_df, vol_df = self.lag_data(df,30,'Close')
+        return val_df, vol_df
