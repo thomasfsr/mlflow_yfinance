@@ -1,4 +1,4 @@
-from sklearn.ensemble import GradientBoostingRegressor as gbm
+from sklearn.ensemble import GradientBoostingRegressor as gbr
 from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputRegressor
 import pandas as pd
@@ -7,18 +7,17 @@ import mlflow
 import mlflow.sklearn
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.metrics import mean_squared_error as mse
-
+    
 class GbmModel:
-    def __init__(self, df:pd.DataFrame = None,
+    def __init__(self,
+                 val:pd.DataFrame = None,
+                 vol:pd.DataFrame = None,
                  n_X:str = 15, 
                  splits:str = 5, 
                  rs:int = 42, 
                  ts:str= .2,
-                 val:pd.DataFrame = None,
-                 vol:pd.DataFrame = None
                  ):
         
-        self.df = df
         self.splits = splits
         self.n_X = n_X
         self.rs = rs
@@ -27,19 +26,7 @@ class GbmModel:
         self.vol = vol
 
     def splitting(self):
-        if self.df is not None:        
-            df = self.df.copy()
-            n_X = self.n_X
-            ts = self.ts
-            rs = self.rs
-
-            vol = df['vol'].copy()
-            df.drop('vol', axis=1, inplace=True)
-            X = df.iloc[:, :n_X].copy()
-            X['vol'] = vol
-            y = df.iloc[:, n_X:].copy()
-
-        elif self.val is not None and self.vol is not None:
+        if self.val is not None and self.vol is not None:
             n_X = self.n_X
             ts = self.ts
             rs = self.rs
@@ -60,9 +47,39 @@ class GbmModel:
 
         return X_train, X_test, y_train, y_test
 
-    def model(self, lr: float, n_estimators: int):
-        
-        X_train, X_test, y_train, y_test = self.splitting()
+    def splitting_sum_vol(self):
+        if self.val is not None and self.vol is not None:
+            n_X = self.n_X
+            ts = self.ts
+            rs = self.rs
+            val = self.val.copy()
+            vol = self.vol.copy()
+
+            X_val = val.iloc[:, :n_X].copy()
+            X_vol = vol.iloc[:, :n_X].copy().sum(axis=1)
+            X = pd.concat([X_val, X_vol], axis=1)
+            y = val.iloc[:, n_X:].copy()
+        else:
+            ValueError()
+        X_train, X_test, y_train, y_test = train_test_split(X, y,  
+                                                    test_size=ts, 
+                                                    shuffle=True, 
+                                                    random_state=rs)
+
+        return X_train, X_test, y_train, y_test
+
+    def model(self, lr: float, n_estimators: int, split_type: str = 'all_vols'):
+
+        assert split_type in ['all_vols', 'sum_vols'], "split_type must be 'all_vols' or 'sum_vols'"
+
+        function_mapping = {
+            'all_vols': self.splitting,
+            'sum_vols': self.splitting_sum_vol
+        }
+
+        split_function = function_mapping.get(split_type)
+
+        X_train, X_test, y_train, y_test = split_function()
 
         n_splits = self.splits
         rs = self.rs
@@ -70,8 +87,9 @@ class GbmModel:
         try:
             with mlflow.start_run():
 
-                gbm_obj = gbm(n_estimators=n_estimators, learning_rate=lr, random_state=rs)
-                multi_output_gb = MultiOutputRegressor(gbm_obj)
+                gbr_obj = gbr(n_estimators=n_estimators, random_state=rs, learning_rate=lr)
+
+                multi_output_gb = MultiOutputRegressor(gbr_obj)
 
                 kfold = KFold(n_splits=n_splits, shuffle=True, random_state=rs)
                 scores = cross_val_score(multi_output_gb, X_train, y_train, cv=kfold, scoring='neg_mean_squared_error')

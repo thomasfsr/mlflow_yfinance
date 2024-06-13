@@ -40,34 +40,23 @@ class GetData:
     def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close'):
         values = []
         volume = []
-        sum_volume = []
         for i in range(0,len(df)-lags,lags):
             v = df['Volume'].values[i:i+lags]
             d = df[column].values[i:i+lags]
             volume.append(v)
             values.append(d)
-            sum_volume.append(sum(v))
         val_array = np.array(values)
         vol_array = np.array(volume)
         val_arrayT = val_array.T
         vol_arrayT = vol_array.T
         val_dict = {f"t{i}": val_arrayT[i] for i in range(0, lags)}
         vol_dict = {f"t_vol{i}": vol_arrayT[i] for i in range(0, lags)}
-        val_with_sum_dict = val_dict.copy()
-        val_with_sum_dict['vol'] = sum_volume
         val_df = pd.DataFrame(val_dict)
         vol_df = pd.DataFrame(vol_dict)
 
-        df_lag = pd.DataFrame(val_with_sum_dict)
-
-        return df_lag, val_df, vol_df
-           
-    def func_start(self):
+        return val_df, vol_df
+              
+    def val_vol_datasets(self):
         df = self.get_data_df()
-        df_lag, _,_ = self.lag_data(df,30,'Close')
-        return df_lag
-    
-    def func_start_vol(self):
-        df = self.get_data_df()
-        _,val_df, vol_df = self.lag_data(df,30,'Close')
+        val_df, vol_df = self.lag_data(df,30,'Close')
         return val_df, vol_df
