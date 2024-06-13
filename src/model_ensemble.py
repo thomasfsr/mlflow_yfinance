@@ -33,11 +33,11 @@ class GbmModel:
             val = self.val.copy()
             vol = self.vol.copy()
 
-            X_val = val.iloc[:, :n_X].copy()
-            X_vol = vol.iloc[:, :n_X].copy()
+            X_val = val.iloc[:, :n_X]
+            X_vol = vol.iloc[:, :n_X]
             X = pd.concat([X_val, X_vol], axis=1)
 
-            y = val.iloc[:, n_X:].copy()
+            y = val.iloc[:, n_X:]
         else:
             ValueError()
         X_train, X_test, y_train, y_test = train_test_split(X, y,  
@@ -55,10 +55,12 @@ class GbmModel:
             val = self.val.copy()
             vol = self.vol.copy()
 
-            X_val = val.iloc[:, :n_X].copy()
-            X_vol = vol.iloc[:, :n_X].copy().sum(axis=1)
+            X_val = val.iloc[:, :n_X]
+            X_vol = vol.iloc[:, :n_X]
+            X_vol = X_vol.sum(axis=1)
+            X_vol = X_vol.to_frame('sum_vol')
             X = pd.concat([X_val, X_vol], axis=1)
-            y = val.iloc[:, n_X:].copy()
+            y = val.iloc[:, n_X:]
         else:
             ValueError()
         X_train, X_test, y_train, y_test = train_test_split(X, y,  
@@ -87,7 +89,9 @@ class GbmModel:
         try:
             with mlflow.start_run():
 
-                gbr_obj = gbr(n_estimators=n_estimators, random_state=rs, learning_rate=lr)
+                gbr_obj = gbr(n_estimators=n_estimators, 
+                              random_state=rs, 
+                              learning_rate=lr)
 
                 multi_output_gb = MultiOutputRegressor(gbr_obj)
 
@@ -102,6 +106,7 @@ class GbmModel:
                 pred_test = multi_output_gb.predict(X_test)
                 rmse = np.sqrt(mse(y_test, pred_test))
 
+                mlflow.log_param('split_type', split_type)
                 mlflow.log_param('n_estimators', n_estimators)
                 mlflow.log_param('learning_rate', lr)
                 mlflow.set_tag("Training Info", "GBM model for time-series")

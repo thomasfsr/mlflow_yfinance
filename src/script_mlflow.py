@@ -23,14 +23,7 @@ val_df, vol_df = get_obj.val_vol_datasets()
 model = GbmModel(val=val_df, vol= vol_df)
 
 for params in grid:
-    model.model(n_estimators=params['n_estimators'], lr=params['lr'], split_type= params['split_type'])
-
-# With the volumes of each timestamp:
-val, vol = get_obj.val_vol_datasets()
-
-model_2 = GbmModel(val=val, vol=vol)
-
-for lr in config['parameters']['learning_rate']:
-    for n_e in config['parameters']['n_estimators']:
-        model_2.model(n_estimators= n_e,
-                    lr= lr)
+    model.model(n_estimators=params['n_estimators'], 
+                lr=params['lr'], 
+                split_type= params['split_type']
+                )
