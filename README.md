@@ -38,7 +38,7 @@ def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close'):
         return val_df, vol_df
 ```
   
-The number of days ahead to be predicted is also tuneable and the default is 5 days out of those 30 lag days.  
+The number of days ahead to be predicted is also tunable and the default is 15 days out of those 30 lag days.  
 For instance:  
 |      |   t0   |   t1    |   t2    |   t3    |   t4    |   t5    | ... |   t24   |   t25   |   t26   |   t27   |   t28   |   t29   |
 |------|--------|---------|---------|---------|---------|---------|-----|---------|---------|---------|---------|---------|---------|
@@ -149,6 +149,7 @@ for params in grid:
     model.model(n_estimators=params['n_estimators'], 
                 lr=params['lr'], 
                 split_type= params
+    )
 ```
   
 ## Results  
@@ -158,11 +159,11 @@ mlflow ui
 ```
 Accessing http://127.0.0.1:5000/ we can see the experiments ran with mlflow.  
   
-MLflow provide tools to create graphs, specially to display the combination of the parameters related to a metric.  
-![MLflow Graph](graph_mlflow.png)  
+MLflow provide tools to create chart, specially to display the combination of the parameters related to a metric.  
+![MLflow Chart](chart_mlflow.png)  
 
 The best model can be seem in this line:  
-![MLflow Graph Opt](opt_model.png)  
+![MLflow Chart Opt](opt_model.png)  
   
 By this experiment, the best pair of parameters was:  
 - Learning Rate: 0.1  
@@ -176,6 +177,9 @@ Morever, MLflow logs some artefacts of the experiment, such as portion of input 
   
 It also provides a way to implement the model with spark:  
 ![Spark](spark.png)  
+  
+See also a chart of the prediction comparing to real data:  
+![chart_pred](pred.png)  
   
 ## Conclusion:  
 MLflow is a powerful tool for monitoring model performance, tuning hyperparameters, comparing models, and evaluating data drift that could degrade model performance, necessitating model re-training.  
