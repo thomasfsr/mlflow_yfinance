@@ -6,7 +6,16 @@ This project aims to provide a hands-on application of this tool to monitor the 
 In this case, I used the "close" price and volume of the asset for simplicity.   
   
 ## Transformation  
-I created lag columns of the close price following the parameters of the class I created to prepare the dataset for use. The default number of lags was set to 30, resulting in the dataset being organized into sequences of 30 consecutive close prices and their respective volumes:
+I created lag columns of the close price following the parameters of the class I created to prepare the dataset for use. The default number of lags was set to 30, resulting in the dataset being organized into sequences of 30 consecutive close prices and their respective volumes:  
+  
+Input data:  
+| Date       | Open     | High     | Low      | Close    | Adj Close | Volume    |
+|------------|----------|----------|----------|----------|-----------|-----------|
+| 2015-12-21 | 0.81225  | 0.82325  | 0.805    | 0.8225   | 0.802859  | 284216000 |
+| 2015-12-22 | 0.825    | 0.8315   | 0.81825  | 0.82325  | 0.803591  | 130012000 |
+| 2015-12-23 | 0.8245   | 0.82975  | 0.823    | 0.8265   | 0.806764  | 122524000 |
+| 2015-12-24 | 0.824    | 0.83125  | 0.82275  | 0.82925  | 0.809448  | 52448000  |
+| 2015-12-28 | 0.8205   | 0.8285   | 0.809    | 0.8285   | 0.808716  | 142024000 |
   
 ```python   
 def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close'):
@@ -60,6 +69,36 @@ The number of trees (models) that will be built in the boosting process. Each tr
 - Learning Rate:  
 Learning rate (also known as shrinkage) is a hyperparameter that controls the contribution of each tree (or weak learner) to the ensemble. It scales the impact of each tree's prediction on the final prediction.  
   
+### Resampling:  
+To better assess the model's performance, I implemented cross-validation, which involves splitting the entire dataset into different folds. This allows the model to train on multiple subsets of the data. Additionally, a portion of unseen data is held out until the end of the training process, enabling me to make predictions on the test set to evaluate the model's performance.  
+
+
+## Evaluation:  
+For cross-validation, I chose 'neg_mean_squared_error' as the metric because it supports multi-output scenarios effectively.  
+  
+And to be tracked by MLflow I also used the average of the score and standard deviation.  
+  
+```python
+gbr_obj = gbr(n_estimators=n_estimators, 
+                              random_state=rs, 
+                              learning_rate=lr)
+
+                multi_output_gb = MultiOutputRegressor(gbr_obj)
+
+                kfold = KFold(n_splits=n_splits, shuffle=True, random_state=rs)
+                scores = cross_val_score(multi_output_gb, X_train, y_train, cv=kfold, scoring='neg_mean_squared_error')
+
+                scores = -scores
+                mean_scores = scores.mean()
+                score_std = scores.std()
+
+                multi_output_gb.fit(X_train, y_train)
+                pred_test = multi_output_gb.predict(X_test)
+                rmse = np.sqrt(mse(y_test, pred_test))
+```
+  
+
+
 
 
 
