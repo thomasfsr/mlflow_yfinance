@@ -1,5 +1,7 @@
 from finance_get import GetData
 
-gett = GetData()
-df = gett.func_start()
-print(df.drop('vol',axis=1).head())
+gett = GetData(ticker_symbol='NVDA')
+val, vol = gett.val_vol_datasets()
+
+print(val.head())
+print(vol.head())
