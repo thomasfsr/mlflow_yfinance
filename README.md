@@ -160,13 +160,22 @@ Accessing http://127.0.0.1:5000/ we can see the experiments ran with mlflow.
   
 MLflow provide tools to create graphs, specially to display the combination of the parameters related to a metric.  
 ![MLflow Graph](graph_mlflow.png)  
+
+The best model can be seem in this line:  
+![MLflow Graph Opt](opt_model.png)  
   
 By this experiment, the best pair of parameters was:  
 - Learning Rate: 0.1  
 - N_estimators: 300  
 - Split type: Sum of Volumes  
   
-Mean Squared Error resulted in the test set was 33.41.  
+Root Mean Squared Error resulted in the test set was 1.833.  
+  
+Morever, MLflow logs some artefacts of the experiment, such as portion of input data and the output, schema of the dataset:  
+![artifacts](artifacts.png)  
+  
+It also provides a way to implement the model with spark:  
+![Spark](spark.png)  
   
 ## Conclusion:  
 MLflow is a powerful tool for monitoring model performance, tuning hyperparameters, comparing models, and evaluating data drift that could degrade model performance, necessitating model re-training.  
