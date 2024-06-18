@@ -73,7 +73,7 @@ Learning rate (also known as shrinkage) is a hyperparameter that controls the co
 To better assess the model's performance, I implemented cross-validation, which involves splitting the entire dataset into different folds. This allows the model to train on multiple subsets of the data. Additionally, a portion of unseen data is held out until the end of the training process, enabling me to make predictions on the test set to evaluate the model's performance.  
 
 
-## Evaluation:  
+### Evaluation:  
 For cross-validation, I chose 'neg_mean_squared_error' as the metric because it supports multi-output scenarios effectively.  
   
 And to be tracked by MLflow I also used the average of the score and standard deviation.  
@@ -97,6 +97,79 @@ gbr_obj = gbr(n_estimators=n_estimators,
                 rmse = np.sqrt(mse(y_test, pred_test))
 ```
   
+In pipeline of training I also created 2 types of splitting:  
+- All volume data: The columns of volume of the timestamp of training set was merged with the values to improve the prediction.  
+- Sum of volumes: It was created one column with the sum of volumes of the training set.
+Whether the sum of volumes would be sufficient to improve the model or not will be tested.  
+  
+### MLFlows logs:  
+The parameters choosen to be track is:  
+```python
+mlflow.log_param('split_type', split_type)
+mlflow.log_param('n_estimators', n_estimators)
+mlflow.log_param('learning_rate', lr)
+mlflow.set_tag("Training Info", "GBM model for time-series")
+mlflow.log_metric('mean_squared_error', mean_scores)
+mlflow.log_metric('std_dev', score_std)
+mlflow.log_metric('RMSE_test_set', rmse)
+```
+  
+The config.yml file with the parameters:  
+  
+```yaml
+parameters:
+  learning_rate: [.05, .1, .5]
+  n_estimators: [50, 100, 200 , 300]
+  split_type: ['sum_vols', 'all_vols']
+```
+  
+## Training Script
+  
+There was created a grid of combinations of the hyperparameters during training:  
+```python
+with open('src/config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+param_grid = {
+    'split_type': config['parameters']['split_type'],
+    'n_estimators': config['parameters']['n_estimators'],
+    'lr': config['parameters']['learning_rate']
+}
+grid = ParameterGrid(param_grid=param_grid)
+
+# Start Experiment:
+mlflow.set_experiment("Yfinance Time Series - NVDA")
+get_obj = GetData(ticker_symbol='NVDA')
+
+# With sum of volumes as one of the features:
+val_df, vol_df = get_obj.val_vol_datasets()
+model = GbmModel(val=val_df, vol= vol_df)
+
+for params in grid:
+    model.model(n_estimators=params['n_estimators'], 
+                lr=params['lr'], 
+                split_type= params
+```
+  
+## Results  
+Now we can use mlflow ui to see the results:  
+```bash
+mlflow ui
+```
+Accessing http://127.0.0.1:5000/ we can see the experiments ran with mlflow.  
+  
+MLflow provide tools to create graphs, specially to display the combination of the parameters related to a metric.  
+![MLflow Graph](graph_mlflow.png)  
+  
+By this experiment, the best pair of parameters was:  
+- Learning Rate: 0.1  
+- N_estimators: 300  
+- Split type: Sum of Volumes  
+  
+Mean Squared Error resulted in the test set was 33.41.  
+  
+## Conclusion:  
+MLflow is a powerful tool for monitoring model performance, tuning hyperparameters, comparing models, and evaluating data drift that could degrade model performance, necessitating model re-training.  
 
 
 
