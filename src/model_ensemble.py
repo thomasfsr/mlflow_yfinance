@@ -1,21 +1,20 @@
 from sklearn.ensemble import GradientBoostingRegressor as gbr
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, TimeSeriesSplit, cross_val_score
 from sklearn.multioutput import MultiOutputRegressor
 import pandas as pd
 import numpy as np
 import mlflow
 import mlflow.sklearn
-from sklearn.model_selection import cross_val_score, KFold
 from sklearn.metrics import mean_squared_error as mse
     
 class GbmModel:
     def __init__(self,
                  val:pd.DataFrame = None,
                  vol:pd.DataFrame = None,
-                 n_X:str = 15, 
+                 n_X:str = 20, 
                  splits:str = 5, 
                  rs:int = 42, 
-                 ts:str= .2,
+                 ts:str= .3,
                  ):
         
         self.splits = splits
@@ -29,7 +28,7 @@ class GbmModel:
         if self.val is not None and self.vol is not None:
             n_X = self.n_X
             ts = self.ts
-            rs = self.rs
+            #rs = self.rs
             val = self.val.copy()
             vol = self.vol.copy()
 
@@ -42,8 +41,9 @@ class GbmModel:
             ValueError()
         X_train, X_test, y_train, y_test = train_test_split(X, y,  
                                                     test_size=ts, 
-                                                    shuffle=True, 
-                                                    random_state=rs)
+                                                    shuffle=False, 
+                                                    #random_state=rs
+                                                    )
 
         return X_train, X_test, y_train, y_test
 
@@ -51,7 +51,7 @@ class GbmModel:
         if self.val is not None and self.vol is not None:
             n_X = self.n_X
             ts = self.ts
-            rs = self.rs
+            #rs = self.rs
             val = self.val.copy()
             vol = self.vol.copy()
 
@@ -65,8 +65,9 @@ class GbmModel:
             ValueError()
         X_train, X_test, y_train, y_test = train_test_split(X, y,  
                                                     test_size=ts, 
-                                                    shuffle=True, 
-                                                    random_state=rs)
+                                                    #shuffle=False, 
+                                                    #random_state=rs
+                                                    )
 
         return X_train, X_test, y_train, y_test
 
@@ -95,24 +96,33 @@ class GbmModel:
 
                 multi_output_gb = MultiOutputRegressor(gbr_obj)
 
-                kfold = KFold(n_splits=n_splits, shuffle=True, random_state=rs)
-                scores = cross_val_score(multi_output_gb, X_train, y_train, cv=kfold, scoring='neg_mean_squared_error')
+                #kfold = KFold(n_splits=n_splits, shuffle=False, 
+                #              #random_state=rs
+                #              )
+                #scores = cross_val_score(multi_output_gb, X_train, y_train, cv=kfold, scoring='neg_mean_squared_error')
 
+                #scores = -scores
+                #mean_scores = scores.mean()
+                #score_std = scores.std()
+
+                tscv = TimeSeriesSplit(n_splits=n_splits)
+                scores = cross_val_score(multi_output_gb, X_train, y_train, cv=tscv, scoring='neg_mean_squared_error')
                 scores = -scores
                 mean_scores = scores.mean()
+                rmse_val = np.sqrt(mean_scores)
                 score_std = scores.std()
 
                 multi_output_gb.fit(X_train, y_train)
                 pred_test = multi_output_gb.predict(X_test)
-                rmse = np.sqrt(mse(y_test, pred_test))
+                rmse_test = np.sqrt(mse(y_test, pred_test))
 
                 mlflow.log_param('split_type', split_type)
                 mlflow.log_param('n_estimators', n_estimators)
                 mlflow.log_param('learning_rate', lr)
                 mlflow.set_tag("Training Info", "GBM model for time-series")
-                mlflow.log_metric('mean_squared_error', mean_scores)
+                mlflow.log_metric('RMSE_val_set', rmse_val)
                 mlflow.log_metric('std_dev', score_std)
-                mlflow.log_metric('RMSE_test_set', rmse)
+                mlflow.log_metric('RMSE_test_set', rmse_test)
 
                 signature = mlflow.models.infer_signature(X_train, multi_output_gb.predict(X_train))
 
@@ -123,9 +133,9 @@ class GbmModel:
                     input_example=X_train.iloc[:2],
                     registered_model_name="gbm_model_registered"
                 )
-                print(f"Mean MSE for n_estimators={n_estimators} and learning_rate={lr}: {mean_scores}")
+                print(f"Squared Root of Mean RMSE for n_estimators={n_estimators} and learning_rate={lr}: {mean_scores}")
                 print(f"Model Info: {model_info}")
-                print(f"RMSE of test-set: {rmse}")
+                print(f"RMSE of test-set: {rmse_test}")
 
         except Exception as e:
             print(e)
