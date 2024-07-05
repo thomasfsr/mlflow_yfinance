@@ -1,4 +1,5 @@
 parameters:
-  learning_rate: [.05, .1, .5]
-  n_estimators: [50, 100, 200 , 300]
-  split_type: ['sum_vols', 'all_vols']
+  learning_rate: [.1, .05]
+  n_estimators: [100, 300, 900]
+  split_type: ['sum_vols']
+  steps: [10, 15, 30]

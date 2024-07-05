@@ -6,17 +6,13 @@ from typing import Literal
 import numpy as np
 
 class GetData:
-    def __init__(self, ticker_symbol:str='BTC-USD', 
-                 start:str='2015-12-20',
-                 end:str= datetime.now().strftime('%Y-%m-%d')):
+    def __init__(self, ticker_symbol:str='BTC-USD'):
         
         self.ticker_symbol = ticker_symbol
-        self.start = start
-        self.end = end
 
     def get_data_df(self):
         try:
-            data = yf.download( self.ticker_symbol, start=self.start, end=self.end)
+            data = yf.download( self.ticker_symbol)
             df = pd.DataFrame(data)
         except Exception as e:
             print(f"Error downloading data: {e}")
@@ -37,10 +33,10 @@ class GetData:
         smooth_df = df.apply(lambda column: column.ewm(alpha=alpha, adjust=False).mean())
         return smooth_df
     
-    def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close'):
+    def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close', step:int = 30):
         values = []
         volume = []
-        for i in range(0,len(df)-lags,lags):
+        for i in range(0,len(df)-lags,step):
             v = df['Volume'].values[i:i+lags]
             d = df[column].values[i:i+lags]
             volume.append(v)
@@ -56,7 +52,7 @@ class GetData:
 
         return val_df, vol_df
               
-    def val_vol_datasets(self):
+    def val_vol_datasets(self, lags:int=30, column:str = 'Close', step=1):
         df = self.get_data_df()
-        val_df, vol_df = self.lag_data(df,30,'Close')
+        val_df, vol_df = self.lag_data(df, lags, column, step=step)
         return val_df, vol_df
