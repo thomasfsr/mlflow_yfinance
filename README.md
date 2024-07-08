@@ -60,7 +60,7 @@ Volume:
 |  4   | 298344000  | 301036000  | 246456000  | 471000000  | 293768000  | ... | 296460000  | 361308000  | 315768000  | 312528000  | 514508000  |
   
 ##  Training  
-The model I choose was Gradient Boosting Model because of the capacity if this model to captures complex patterns. It is achieved because GBM is a ensamble method, meaning that it is composed of multiple decision trees in series (different than random forest). Each model is trained to correct the erros of the previous decision tree.  
+The models choosen for this project are XGBoost and LightGBM because of the capacity if these models to capture complex patterns. It is achieved because GBM is a ensamble method, meaning that it is composed of multiple decision trees in series (different than random forest). Each model is trained to correct the erros of the previous decision tree.  
   
 ### Hyperparameters used:
 - Number of Estimators:  
@@ -70,31 +70,27 @@ The number of trees (models) that will be built in the boosting process. Each tr
 Learning rate (also known as shrinkage) is a hyperparameter that controls the contribution of each tree (or weak learner) to the ensemble. It scales the impact of each tree's prediction on the final prediction.  
   
 ### Resampling:  
-To better assess the model's performance, I implemented cross-validation, which involves splitting the entire dataset into different folds. This allows the model to train on multiple subsets of the data. Additionally, a portion of unseen data is held out until the end of the training process, enabling me to make predictions on the test set to evaluate the model's performance.  
+To better assess the model's performance, I implemented time series cross-validation, which involves splitting the entire dataset into different folds. However, since it is s time series, a normal CV would create data leakage, so the solution was to implement TimeSeriesCV. Additionally, a portion of unseen data called Test set is held out until the end of the training process, enabling me to make predictions on the test set to evaluate the model's performance.  
 
 
 ### Evaluation:  
-For cross-validation, I chose 'neg_mean_squared_error' as the metric because it supports multi-output scenarios effectively.  
+For CV, I chose 'neg_mean_squared_error' as the metric because it supports multi-output scenarios effectively.  
   
 And to be tracked by MLflow I also used the average of the score and standard deviation.  
   
 ```python
-gbr_obj = gbr(n_estimators=n_estimators, 
-                              random_state=rs, 
-                              learning_rate=lr)
+multi_output_gb = MultiOutputRegressor(selected_model)
 
-                multi_output_gb = MultiOutputRegressor(gbr_obj)
+tscv = TimeSeriesSplit(n_splits=n_splits)
+scores = cross_val_score(xb, X_train, y_train, cv=tscv, scoring='neg_mean_squared_error')
+scores = -scores
+mean_scores = scores.mean()
+rmse_val = np.sqrt(mean_scores)
+score_std = scores.std()
 
-                kfold = KFold(n_splits=n_splits, shuffle=True, random_state=rs)
-                scores = cross_val_score(multi_output_gb, X_train, y_train, cv=kfold, scoring='neg_mean_squared_error')
-
-                scores = -scores
-                mean_scores = scores.mean()
-                score_std = scores.std()
-
-                multi_output_gb.fit(X_train, y_train)
-                pred_test = multi_output_gb.predict(X_test)
-                rmse = np.sqrt(mse(y_test, pred_test))
+multi_output_gb.fit(X_train, y_train)
+pred_test = multi_output_gb.predict(X_test)
+rmse_test = np.sqrt(mse(y_test, pred_test))
 ```
   
 In pipeline of training I also created 2 types of splitting:  
@@ -118,38 +114,51 @@ The config.yml file with the parameters:
   
 ```yaml
 parameters:
-  learning_rate: [.05, .1, .5]
-  n_estimators: [50, 100, 200 , 300]
-  split_type: ['sum_vols', 'all_vols']
+  learning_rate: [0.1, 0.5]
+  n_estimators: [100]
+  split_type: ['sum_vols']
+  max_depth: [3, 10]
+  steps: [10]
+  reg_alpha: [0, .5]
+  reg_lambda: [0, .5]
+  model: ['lightgbm', 'xgboost']
 ```
   
 ## Training Script
   
 There was created a grid of combinations of the hyperparameters during training:  
 ```python
-with open('src/config.yml', 'r') as f:
-    config = yaml.safe_load(f)
-
 param_grid = {
+    'model': config['parameters']['model'],
     'split_type': config['parameters']['split_type'],
     'n_estimators': config['parameters']['n_estimators'],
-    'lr': config['parameters']['learning_rate']
-}
+    'lr': config['parameters']['learning_rate'],
+    'steps': config['parameters']['steps'],
+    'max_depth': config['parameters']['max_depth'],
+    'reg_alpha' : config['parameters']['reg_alpha'],
+    'reg_lambda': config['parameters']['reg_lambda']
+    }
 grid = ParameterGrid(param_grid=param_grid)
 
 # Start Experiment:
-mlflow.set_experiment("Yfinance Time Series - NVDA")
-get_obj = GetData(ticker_symbol='NVDA')
-
-# With sum of volumes as one of the features:
-val_df, vol_df = get_obj.val_vol_datasets()
-model = GbmModel(val=val_df, vol= vol_df)
+mlflow.create_experiment("Gold1")
+mlflow.set_experiment("Gold1")
+get_obj = GetData(ticker_symbol='CL=F')
 
 for params in grid:
-    model.model(n_estimators=params['n_estimators'], 
-                lr=params['lr'], 
-                split_type= params
-    )
+    steps = params['steps']
+    val_df, vol_df = get_obj.val_vol_datasets(lags=30,step=steps)
+    model = GbmModel(val=val_df, vol= vol_df,n_X=25)
+    model.model(
+        model = params['model'],
+        n_estimators=params['n_estimators'], 
+        lr=params['lr'], 
+        split_type= params['split_type'],
+        max_depth = params['max_depth'],
+        reg_alpha = params['reg_alpha'],
+        reg_lambda = params['reg_lambda'],
+        steps=params['steps']
+        )
 ```
   
 ## Results  
@@ -166,11 +175,15 @@ The best model can be seem in this line:
 ![MLflow Chart Opt](opt_model.png)  
   
 By this experiment, the best pair of parameters was:  
+- Model: XGBoost  
+- max_depth: 3  
 - Learning Rate: 0.1  
-- N_estimators: 300  
+- N_estimators: 100  
 - Split type: Sum of Volumes  
+- reg_alpha: 0.5  
+- reg_lambda: 0  
   
-Root Mean Squared Error resulted in the test set was 1.833.  
+Root Mean Squared Error for Test Set was 3.28.  
   
 Morever, MLflow logs some artefacts of the experiment, such as portion of input data and the output, schema of the dataset:  
 ![artifacts](artifacts.png)  
@@ -178,7 +191,7 @@ Morever, MLflow logs some artefacts of the experiment, such as portion of input 
 It also provides a way to implement the model with spark:  
 ![Spark](spark.png)  
   
-See also a chart of the prediction comparing to real data:  
+See also charts of some exemples of predictions made on test-set comparing to real data:  
 ![chart_pred](pred.png)  
   
 ## Conclusion:  
