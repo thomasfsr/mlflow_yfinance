@@ -38,7 +38,7 @@ def lag_data(self, df:pd.DataFrame=None, lags:int=30, column:str = 'Close'):
         return val_df, vol_df
 ```
   
-The number of days ahead to be predicted is also tunable and the default is 15 days out of those 30 lag days.  
+The number of days ahead to be predicted is also tunable and the default is 5 days out of those 30 lag days.  
 For instance:  
 |    |    t0 |    t1 |    t2 |    t3 |    t4 |   ... |   t22 |   t23 |   t24 |     sum_vol |
 |---:|------:|------:|------:|------:|------:|------:|------:|------:|------:|------------:|
@@ -135,8 +135,8 @@ param_grid = {
 grid = ParameterGrid(param_grid=param_grid)
 
 # Start Experiment:
-mlflow.create_experiment("Gold1")
-mlflow.set_experiment("Gold1")
+mlflow.create_experiment("oil_pred")
+mlflow.set_experiment("oil_pred")
 get_obj = GetData(ticker_symbol='CL=F')
 
 for params in grid:

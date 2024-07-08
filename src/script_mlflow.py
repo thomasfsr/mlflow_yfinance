@@ -20,9 +20,9 @@ param_grid = {
 grid = ParameterGrid(param_grid=param_grid)
 
 # Start Experiment:
-mlflow.create_experiment("Gold1")
-mlflow.set_experiment("Gold1")
-get_obj = GetData(ticker_symbol='CL=F')
+mlflow.create_experiment("REAL GOLD")
+mlflow.set_experiment("REAL GOLD")
+get_obj = GetData(ticker_symbol='GC=F')
 
 for params in grid:
     steps = params['steps']
