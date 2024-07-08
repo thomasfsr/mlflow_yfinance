@@ -95,12 +95,13 @@ Whether the sum of volumes would be sufficient to improve the model or not will 
 The parameters choosen to be track is:  
 ```python
 mlflow.log_param('split_type', split_type)
+mlflow.log_param('model', model)
 mlflow.log_param('n_estimators', n_estimators)
 mlflow.log_param('learning_rate', lr)
-mlflow.set_tag("Training Info", "GBM model for time-series")
-mlflow.log_metric('mean_squared_error', mean_scores)
-mlflow.log_metric('std_dev', score_std)
-mlflow.log_metric('RMSE_test_set', rmse)
+mlflow.log_param('steps', steps)
+mlflow.log_param('max_depth', max_depth)
+mlflow.log_param('reg_alpha', reg_alpha)
+mlflow.log_param('reg_lambda', reg_lambda)
 ```
   
 The config.yml file with the parameters:  

@@ -137,7 +137,7 @@ class GbmModel:
                 pred_test = multi_output_gb.predict(X_test)
                 rmse_test = np.sqrt(mse(y_test, pred_test))
 
-                mlflow.log_atr
+
                 mlflow.log_param('split_type', split_type)
                 mlflow.log_param('model', model)
                 mlflow.log_param('n_estimators', n_estimators)
